@@ -1,0 +1,1979 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แบบประเมินของประทานฝ่ายวิญญาณ</title>
+    <meta name="description" content="แบบประเมินของประทานฝ่ายวิญญาณ 133 ข้อประเมินของประทาน 19 ด้าน">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- html2canvas for saving results as image -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Google Fonts: Kanit -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <!-- Babel for JSX compilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+            background-color: #f5f3ff; /* Soft purple background */
+            color: #1e1b4b; /* Deep violet text */
+        }
+        .card {
+            background-color: #ffffff;
+            border: 1px solid #e9d5ff;
+            box-shadow: 0 10px 15px -3px rgba(124, 58, 237, 0.05), 0 4px 6px -2px rgba(124, 58, 237, 0.025);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.2s ease-out forwards;
+        }
+        .animate-slideUp {
+            animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        /* Custom scrollbar for wide tables */
+        ::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- แผงแสดงข้อผิดพลาดหากเว็บโหลดไม่สำเร็จ (Error Boundary Panel) -->
+    <div id="error-display" style="display:none; margin: 20px; padding: 20px; background: #fee2e2; border: 2px solid #ef4444; color: #991b1b; font-family: sans-serif; border-radius: 12px; z-index: 9999; position: relative;">
+        <h2 style="margin-top: 0; font-size: 18px; font-weight: bold;">เกิดข้อผิดพลาดในการโหลดหน้าเว็บ (Error Detected):</h2>
+        <pre id="error-message" style="white-space: pre-wrap; font-size: 13px; margin: 10px 0;"></pre>
+        <p style="font-size: 12px; margin-bottom: 0; color: #7f1d1d;">* หากปัญหายังไม่หาย กรุณาแคปหน้าจอนี้ส่งมาเพื่อเป็นข้อมูลตรวจสอบ หรือกด <strong>Ctrl + F5</strong> เพื่อรีเฟรชหน้าแบบล้างแคชเครื่อง (Hard Refresh) ครับ</p>
+    </div>
+    <script>
+        window.addEventListener('error', function(e) {
+            var display = document.getElementById('error-display');
+            var msg = document.getElementById('error-message');
+            if (display && msg) {
+                display.style.display = 'block';
+                msg.textContent += '\n' + e.message + ' at ' + e.filename + ':' + e.lineno + ':' + e.colno;
+            }
+        });
+        window.addEventListener('unhandledrejection', function(e) {
+            var display = document.getElementById('error-display');
+            var msg = document.getElementById('error-message');
+            if (display && msg) {
+                display.style.display = 'block';
+                msg.textContent += '\nUnhandled Promise Rejection: ' + e.reason;
+            }
+        });
+    </script>
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo, useRef, useEffect, useCallback } = React;
+
+        // ใส่ URL ของ Google Web App ที่ได้จาก Google Sheets ในภายหลัง
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzl7e_C2BBKGvZJMjH_9ndl134-5HKUrpBBwIzgmkD3kOiWddBVRSosYzMQYCo_kOqSZQ/exec';
+
+        /* 
+        ======================================================================
+        คู่มือการติดตั้ง Google Apps Script สำหรับเก็บข้อมูลและวิเคราะห์สถิติ (19 คอลัมน์แยก):
+        ======================================================================
+        1. เปิด Google Sheets -> เลือก Extensions (ส่วนขยาย) -> Apps Script
+        2. วางโค้ดด้านล่างนี้ในไฟล์ Code.gs:
+
+        function doPost(e) {
+          try {
+            var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+            var data = JSON.parse(e.postData.contents);
+            if (sheet.getLastRow() === 0) { setupSheet(sheet); }
+            var scores = data.scores || {};
+            var row = [
+              data.date || new Date().toISOString(),
+              data.fullName || "",
+              data.nickname || "",
+              data.role || "",
+              data.section || "",
+              data.gender || "",
+              data.ageRange || "",
+              data.dominantType || "",
+              scores["ก"] || 0, scores["ข"] || 0, scores["ค"] || 0, scores["ง"] || 0,
+              scores["จ"] || 0, scores["ฉ"] || 0, scores["ช"] || 0, scores["ซ"] || 0,
+              scores["ฌ"] || 0, scores["ญ"] || 0, scores["ฎ"] || 0, scores["ฏ"] || 0,
+              scores["ฐ"] || 0, scores["ฑ"] || 0, scores["ฒ"] || 0, scores["ณ"] || 0,
+              scores["ด"] || 0, scores["ต"] || 0, scores["ถ"] || 0
+            ];
+            sheet.appendRow(row);
+            return ContentService.createTextOutput(JSON.stringify({ status: "success" }))
+              .setMimeType(ContentService.MimeType.JSON);
+          } catch(err) {
+            return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() }))
+              .setMimeType(ContentService.MimeType.JSON);
+          }
+        }
+
+        function doGet(e) {
+          try {
+            var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+            var rows = sheet.getDataRange().getValues();
+            if (rows.length <= 1) {
+              return ContentService.createTextOutput(JSON.stringify([])).setMimeType(ContentService.MimeType.JSON);
+            }
+            var jsonArray = [];
+            var categories = ["ก","ข","ค","ง","จ","ฉ","ช","ซ","ฌ","ญ","ฎ","ฏ","ฐ","ฑ","ฒ","ณ","ด","ต","ถ"];
+            for (var i = 1; i < rows.length; i++) {
+              var r = rows[i];
+              if (!r[1]) continue;
+              var scoresObj = {};
+              for (var j = 0; j < categories.length; j++) {
+                scoresObj[categories[j]] = Number(r[8 + j]) || 0;
+              }
+              jsonArray.push({
+                date: r[0], fullName: r[1], nickname: r[2], role: r[3], section: r[4], gender: r[5], ageRange: r[6], dominantType: r[7],
+                scores: scoresObj
+              });
+            }
+            return ContentService.createTextOutput(JSON.stringify(jsonArray)).setMimeType(ContentService.MimeType.JSON);
+          } catch(err) {
+            return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() })).setMimeType(ContentService.MimeType.JSON);
+          }
+        }
+
+        function setupSheet(targetSheet) {
+          var sheet = targetSheet || SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+          var headers = [
+            "Timestamp", "Full Name", "Nickname", "Role", "Section", "Gender", "Age Range", "Dominant Gift",
+            "ก", "ข", "ค", "ง", "จ", "ฉ", "ช", "ซ", "ฌ", "ญ", "ฎ", "ฏ", "ฐ", "ฑ", "ฒ", "ณ", "ด", "ต", "ถ"
+          ];
+          sheet.appendRow(headers);
+          var range = sheet.getRange(1, 1, 1, headers.length);
+          range.setFontWeight("bold").setBackground("#f3e8ff").setHorizontalAlignment("center");
+        }
+
+        3. เลือกฟังก์ชัน setupSheet กดปุ่ม Run (เรียกใช้) ด้านบนเพื่อเตรียมคอลัมน์แรกในสเปรดชีต
+        4. กด Deploy (ทำให้ใช้งานได้) -> New deployment -> เลือกประเภทเป็น Web app (เว็บแอป)
+        5. ตั้งค่า Execute as: Me และ Who has access: Anyone
+        ======================================================================
+        */
+
+        const QUESTIONS = [
+            "ฉันชอบจัดระเบียบเรื่องคน, งานและเหตุการณ์ต่างๆ",
+            "ฉันอยากเริ่มตั้งคริสตจักรในที่ซึ่งปัจจุบันยังไม่มีคริสตจักรเลย",
+            "ฉันสนุกกับงานสร้างสรรค์ที่เกี่ยวกับไม้, ผ้า, สี, โลหะ, แก้วหรือวัตถุอื่นๆ",
+            "ฉันชอบเชิญชวนให้คนมีความคิดอันถูกต้องกับพระเจ้าโดยศิลปะแบบต่างๆ",
+            "ฉันสามารถแยกแยะความแตกต่างระหว่างความจริงและความเท็จฝ่ายวิญญาณ, ความดีและความชั่ว, ได้ทันที",
+            "ฉันมักเห็นศักยภาพในคนเสมอ",
+            "ฉันสื่อสารพระกิตติคุณแก่ผู้อื่นได้อย่างชัดเจนและเกิดผล",
+            "ฉันพบว่าเป็นเรื่องง่ายและปกติที่จะวางใจพระเจ้าในการตอบคำอธิษฐานของฉัน",
+            "ฉันให้เงินแก่ผู้ต้องการ/โครงการที่ต้องการสนับสนุนได้อย่างอิสระและด้วยความยินดี",
+            "ฉันชอบทำงานอยู่เบื้องหลังเพื่อสนับสนุนงานของผู้อื่น",
+            "ฉันเห็นว่าบ้านของตนเองเป็นที่ที่จะปรนนิบัติคนที่มีความต้องการได้",
+            "ฉันนำเรื่องที่คนอื่นให้อธิษฐานมาอธิษฐานอย่างสม่ำเสมอ",
+            "ฉันมักถูกผู้ที่อยากรู้มุมมองของฉันต่อพระคัมภีร์ตอนใดตอนหนึ่ง หรือความจริงในพระคัมภีร์เข้ามาเสมอๆ",
+            "ฉันสามารถกระตุ้น/จูงใจคนอื่นให้บรรลุเป้าหมายได้",
+            "ฉันเห็นอกเห็นใจผู้ที่มีความเจ็บปวดและปรารถนาจะช่วยเขาในกระบวนการบำบัดรักษาของเขา",
+            "ฉันสามารถพูดโดยให้เกิดความเชื่อและการเปลี่ยนแปลงในชีวิตของคนอื่นได้",
+            "ฉันชอบใช้เวลาในการเลี้ยงดูและเอาใจใส่คนอื่น",
+            "ฉันสามารถสื่อสารพระคำของพระเจ้าอย่างเกิดผล",
+            "ฉันมักถูกตามหาเพื่อขอคำแนะนำด้านจิตวิญญาณหรือเรื่องส่วนตัวเสมอ",
+            "ฉันเป็นคนที่ระมัดระวัง, และมีฝีมือในการจัดการเรื่องรายละเอียดให้เรียบร้อยได้",
+            "ฉันมักมีความคิดที่จะรับใช้ในต่างประเทศหรือชุมชนต่างวัฒนธรรมเสมอ",
+            "ฉันมีฝีมือในการทำงานกับเครื่องมือชนิดต่างๆ",
+            "ฉันชอบที่จะพัฒนาและใช้ความสามารถทางศิลปะเสมอ (ศิลปะ, การละคร, ดนตรี, ถ่ายภาพ ฯลฯ)",
+            "ฉันสามารถวินิจฉัยลักษณะของคนจากความประทับใจเมื่อแรกพบ",
+            "ฉันชอบหนุนใจและย้ำความมั่นใจแก่ผู้ท้อแท้ให้เข้มแข็งขึ้น",
+            "ฉันมองหาโอกาสในการสร้างความสัมพันธ์กับผู้ที่ยังไม่เป็นคริสเตียนเสมอ",
+            "ฉันมีความมั่นใจในการจัดเตรียมของพระเจ้าเสมอ แม้ในยามยากลำบาก",
+            "ฉันถวายมากกว่าสิบลด เพื่อพระราชกิจจะสามารถสำเร็จได้",
+            "ฉันชอบทำงานที่เป็นกิจวัตรเพื่อสนับสนุนการรับใช้",
+            "ฉันพบคนใหม่ ๆ และช่วยพวกเขาให้รู้สึกได้รับการต้อนรับที่อบอุ่น",
+            "ฉันชอบอธิษฐานเป็นเวลานาน ๆ และได้รับการทรงนำให้อธิษฐานในสิ่งที่พระเจ้าต้องการ",
+            "ฉันได้รับถ้อยคำ/ข้อมูลจากพระวิญญาณในเรื่องที่ไม่สามารถได้รับทางวิธีธรรมชาติ",
+            "ฉันสามารถทำให้คนอื่นประพฤติตามนิมิตได้",
+            "ฉันสามารถสนับสนุนคนที่กำลังประสบกับความเจ็บปวด/และกำลังที่พยายามหาทางออกของชีวิตได้ด้วยความอดทน",
+            "ฉันรู้สึกว่าเป็นหน้าที่ที่ต้องเผชิญผู้อื่นด้วยความจริง",
+            "ฉันเมตตาสงสารผู้เชื่อที่ต้องพเนจรและอยากปกป้องเขา",
+            "ฉันสามารถใช้เวลาในการศึกษา, โดยรู้ว่าการนำเสนอความจริงจะทำให้เกิดความแตกต่างในชีวิตคนอื่น",
+            "ฉันมักสามารถหาทางออกที่ง่ายและข้อสรุปที่ปฏิบัติได้จริงท่ามกลางความขัดแย้งและสับสน",
+            "ฉันสามารถทำให้เป้าหมายชัดเจนและพัฒนายุทธวิธี/แผนงานเพื่อให้เกิดความสำเร็จ",
+            "ฉันยินดีที่จะรับบทเป็นผู้ปฏิบัติการในการตั้งคริสตจักรใหม่",
+            "ฉันชอบทำสิ่งต่าง ๆ เพื่อใช้ในงานรับใช้",
+            "ฉันช่วยคนอื่นให้เข้าใจตัวเขา, ความสัมพันธ์ของเขา, และพระเจ้าดีขึ้นโดยการแสดงทางศิลปะ",
+            "ฉันสามารถรู้โดยทางเสียงหรือการล่อลวงก่อนที่สิ่งนั้นจะปรากฏแก่คนอื่น",
+            "ฉันให้ความหวังแก่ผู้อื่นโดยนำพวกเขาสู่พระสัญญาของพระเจ้า",
+            "ฉันเก่งในการปรับข่าวประเสริฐให้เข้ากับความต้องการของแต่ละบุคคล",
+            "ฉันเชื่อว่าพระเจ้าจะช่วยฉันทำเรื่องใหญ่ ๆ ให้สำเร็จ",
+            "ฉันจัดการเรื่องเงินดีเพื่อจะมีเงินสำหรับให้ได้มากขึ้น",
+            "ฉันยินดีทำงานคริสตจักรแม้เป็นงานเล็ก ๆ น้อย ๆ ก็ตามเพื่อสนองความต้องการของผู้อื่น",
+            "ฉันเชื่อจริงใจว่าพระเจ้านำคนแปลกหน้าซึ่งต้องการติดต่อกับผู้อื่นมาหาฉัน",
+            "ฉันรู้ว่าการอธิษฐานเผื่อผู้อื่นนั้นเป็นงานรับใช้",
+            "ฉันอุทิศและตั้งเวลาสำหรับอ่านและศึกษาพระคัมภีร์เพื่อจะเข้าใจความจริงในพระคัมภีร์อย่างถูกต้องและทั้งหมด",
+            "ฉันปรับแบบการนำของตนเองเพื่อนำสิ่งดีที่สุดออกจากผู้อื่นได้",
+            "ฉันชื่นชมกับการช่วยคนอื่นแม้บางครั้งกับเรื่องที่ไม่ควรหรือยากที่จะช่วย",
+            "ฉันกล้าเผชิญกับแรงกดดันทางวัฒนธรรม, การสอนหรือเหตุการณ์ที่ขัดกับหลักของพระคัมภีร์",
+            "ฉันมักพร้อมให้การนำแก่บุคคล ทั้งด้านความสัมพันธ์, อารมณ์และฝ่ายวิญญาณ ฯลฯ",
+            "ฉันสนใจอย่างมากต่อคำ, วลี และความหมายของผู้สอน",
+            "ฉันสามารถเลือกการปฏิบัติที่เกิดผลที่สุดจากหลายประการได้ง่าย ๆ",
+            "ฉันสามารถรู้และใช้แหล่งทรัพยากรที่ทำให้งานเสร็จอย่างเกิดผล",
+            "ฉันสามารถปรับตัวเข้ากับวัฒนธรรมและสิ่งแวดล้อมได้ดีมาก",
+            "ฉันสามารถเห็นว่าบางสิ่งควรได้รับการสร้างอย่างไรก่อนที่จะเริ่มการสร้าง",
+            "ฉันชอบหาวิธีใหม่ ๆ ในการสื่อสารความจริงของพระเจ้า",
+            "ฉันมักเห็นความถูกและความผิดในสถานการณ์ต่าง ๆ เสมอ",
+            "ฉันจะให้ความมั่นใจแก่ผู้ต้องการความกล้าในการตัดสินใจเรื่องความเชื่อ, ครอบครัว หรือชีวิต",
+            "ฉันเชิญผู้ไม่เชื่อให้ยอมรับพระเยซูคริสต์เป็นพระผู้ช่วยให้รอด",
+            "ฉันวางใจพระเจ้าในสถานการณ์ที่ความสามารถมนุษย์ประกันความสำเร็จไม่ได้",
+            "ฉันถูกท้าให้จำกัดแบบชีวิตเพื่อจะได้สละรายได้ที่สูงขึ้น",
+            "ฉันเห็นสิ่งสำคัญฝ่ายวิญญาณในขณะทำภารกิจฝ่ายโลก",
+            "ฉันอยากสร้างที่สักแห่งซึ่งทำให้คนไม่รู้สึกว่าอยู่ตามลำพัง",
+            "ฉันอธิษฐานอย่างเชื่อมั่นเพราะรู้ว่าพระเจ้าจะทำงานตามคำอธิษฐาน",
+            "ฉันมีสัญชาตญาณหรือรู้ว่าบางสิ่งจะเป็นจริง/เกิดขึ้น",
+            "ฉันตั้งเป้าหมายพร้อมจัดคนและแหล่งทรัพยากรอย่างเกิดผลเพื่อทำให้สำเร็จได้",
+            "ฉันมีความเวทนาสงสารยิ่งต่อคนที่มีบาดเจ็บทั้งกายและใจ",
+            "ฉันมองการกระทำส่วนใหญ่ว่า ถูก หรือ ผิด และรู้สึกต้องการแก้ไขสิ่งที่ผิด",
+            "ฉันสามารถให้การสนับสนุนระยะยาวอย่างสัตย์ซื่อและห่วงใยผู้อื่น",
+            "ฉันอยากเริ่มการศึกษาพระคัมภีร์ของฉันอย่างมีระบบระเบียบ",
+            "ฉันสามารถคาดการณ์ผลที่จะเกิดตามมาจากการกระทำของบางคนหรือทั้งกลุ่มได้",
+            "ฉันอยากช่วยองค์การหรือกลุ่มต่าง ๆ ให้เกิดผลมากขึ้น",
+            "ฉันสามารถสื่อสารกับคนอื่น ๆ ที่มีปัญหาด้านวัฒนธรรมได้",
+            "ฉันมีฝีมือในการทำงานกับเครื่องมือชนิดต่างๆ",
+            "ฉันประยุกต์การแสดงทางศิลปะต่าง ๆ ในการสื่อสารความจริงของพระเจ้า",
+            "ฉันได้รับการยืนยันจากคนอื่นเรื่องความเชื่อถือได้ในสัญชาตญาณหรือสิ่งที่รับรู้ได้ก่อน",
+            "ฉันทำให้คนที่มีความเชื่อคลอนแคลนแข็งแรงขึ้น",
+            "ฉันบอกคนอื่นอย่างเปิดเผยว่าเป็นคริสเตียน และต้องการให้เขา/เธอถามเกี่ยวกับความเชื่อของตน",
+            "ฉันเชื่อมั่นว่าพระเจ้าทรงอยู่และกระทำกิจในชีวิตทุกวัน",
+            "ฉันอยากรู้ว่าการสนับสนุนด้านการเงินของตนทำให้เกิดความแตกต่างในชีวิต และการรับใช้ในคนของพระเจ้าจริง",
+            "ฉันชอบหาสิ่งเล็ก ๆ ที่จำเป็นต้องทำและทำให้เสร็จโดยไม่รอให้ถาม",
+            "ฉันเพลินกับการทำให้คนอื่นมีความสุข และเปิดบ้านเพื่อคนอื่น",
+            "เมื่อฉันได้ยินถึงความต้องการ ก็รู้สึกมีภาระที่จะอธิษฐานเผื่อ",
+            "ฉันเคยรู้บางอย่างเกี่ยวกับคนอื่นในทันใด แต่ไม่รู้ว่ารู้ได้อย่างไร",
+            "ฉันสามารถทำให้คนอื่นทำสิ่งต่าง ๆ ตามความสามารถของเขาได้ดีที่สุด",
+            "ฉันสามารถมองไกลกว่าปัญหาหรือความพิการของคน เห็นถึงชีวิตซึ่งเป็นเรื่องที่สำคัญต่อพระเจ้า",
+            "ฉันชอบคนที่ซื่อสัตย์และพูดความจริง",
+            "ฉันเพลินกับการให้คำชี้แนะและสนับสนุนแก่กลุ่มคนเล็ก ๆ",
+            "ฉันสามารถสื่อสารพระคัมภีร์ในวิธีที่จูงใจคนอื่นให้มาเรียนและอยากเรียนรู้มากขึ้น",
+            "ฉันให้คำแนะนำที่ปฏิบัติได้เพื่อช่วยคนอื่นให้ผ่านสถานการณ์ที่ยุ่งยาก",
+            "ฉันเพลินกับการเรียนรู้ว่าองค์การทำงานอย่างไร",
+            "ฉันเพลินกับการนำกลุ่มใหม่ที่เพิ่งเข้ารับงาน",
+            "ฉันชอบและทำงานต่าง ๆ ได้ดีด้วยมือของตนเอง",
+            "ฉันเป็นคนชอบสร้างสรรค์และมีจินตนาการมาก",
+            "ฉันสามารถชี้ได้ว่า คำเทศนา, การสอนหรือการสื่อสารใดไม่ตรงกับพระคัมภีร์",
+            "ฉันชอบกระตุ้นให้ผู้อื่นก้าวสู่การเติบโตฝ่ายวิญญาณ",
+            "ฉันบอกผู้อื่นว่าพระเยซูได้ทำอะไรให้ด้วยความมั่นใจและเปิดเผย",
+            "ฉันมักท้าทายให้ผู้อื่นวางใจในพระเจ้าเสมอ",
+            "ฉันให้ด้วยใจยินดีและกรุณาตามพันธะของคนต้นเรือน",
+            "ฉันรู้สึกสบายที่ได้เป็นผู้ช่วย ในการช่วยให้คนอื่นทำงานอย่างเกิดผล",
+            "ฉันจะทำทุกอย่างเท่าที่ทำได้เพื่อให้คนอื่นเกิดความรู้สึกว่า เขาเป็นที่ยอมรับ",
+            "ฉันรู้สึกเป็นเกียรติเมื่อคนอื่นขอให้อธิษฐานเผื่อเขา",
+            "ฉันพบความจริงที่สำคัญในพระคัมภีร์อันจะเป็นประโยชน์แก่ผู้อื่น ในพระกายขณะอ่านและศึกษาพระคัมภีร์",
+            "ฉันสามารถวาดนิมิตที่คนอื่นอยากมีส่วนร่วมได้",
+            "ฉันเพลินกับการนำความหวังและความยินดีแก่คนที่อยู่ในสถานการณ์ลำบาก",
+            "ฉันจะพูดความจริงของพระเจ้าแม้ในที่ที่คนไม่สนใจหรือรับได้ยาก",
+            "ฉันสามารถค่อย ๆ ช่วยให้ผู้เชื่อที่หลงหายกลับมามีความเชื่อและสามัคคีธรรมที่ดีได้",
+            "ฉันสามารถแบ่งปันข้อมูลและความยากง่ายแก่ผู้อื่นในระดับที่ทำให้เขาเอาไปใช้ได้ง่าย",
+            "ฉันสามารถประยุกต์ความจริงในพระคัมภีร์ที่คนอื่นสนใจ มาเป็นภาคปฏิบัติและเป็นประโยชน์ได้",
+            "ฉันสามารถเห็นเหตุการณ์ที่กำลังมาถึง, คาดการณ์ปัญหาสำคัญที่จะเกิดและคิดหาทางแก้ไขหรือรองรับได้",
+            "ฉันสามารถควบคุมดูแลงานรับใช้ต่าง ๆ ในหลายคริสตจักรได้",
+            "ฉันสามารถออกแบบและสร้างสิ่งที่จะช่วยคริสตจักรได้",
+            "ฉันสามารถอยู่ตามลำพังเพื่อทบทวนและสร้างจินตนาการ",
+            "ฉันสามารถสัมผัสเมื่อพลังของวิญญาณชั่วกำลังทำงานในคนหรือสถานการณ์ได้",
+            "ฉันสามารถท้าทายหรือตักเตือนผู้อื่น เพื่อช่วยให้ฝ่ายวิญญาณเติบโตได้",
+            "ฉันเสาะหาโอกาสที่จะพูดเรื่องฝ่ายวิญญาณกับคนที่ยังไม่เชื่อเสมอ",
+            "ฉันสู้ต่อไปได้ไม่ว่าจะมีอุปสรรคหรือขาดการสนับสนุนเมื่อสัมผัสว่าพระเจ้าทรงอวยพรงานที่เริ่มต้นใหม่",
+            "ฉันเชื่อว่าที่ตนเองมีปัจจัย/ทรัพยากรมาก ก็เพื่อถวายแก่งานของพระเจ้ามากขึ้น",
+            "ฉันมีความสุขที่ได้ใช้ความสามารถตามธรรมชาติ/ที่เรียนรู้มา เพื่อให้การช่วยเหลือแก่ผู้ต้องการ",
+            "ฉันสามารถทำให้คนอื่นรู้สึกสบายแม้ในเหตุการณ์แวดล้อมที่แปลก ๆ",
+            "ฉันมักเห็นผลลัพธ์ที่เฉพาะเจาะจง และตรงคำอธิษฐานเสมอ",
+            "ฉันมั่นใจที่จะแบ่งปันความรู้และสิ่งที่เข้าใจกับคนอื่นเสมอ",
+            "ฉันรู้ว่าจะต้องไปที่ใดและช่วยคนอื่นให้ไปถึงด้วย",
+            "ฉันเพลินกับการทำสิ่งต่าง ๆ เพื่อผู้ที่มีความต้องการ",
+            "ฉันรู้สึกถูกบังคับให้เปิดเผยบาปทุกครั้งที่เห็นและเชิญชวนคนให้กลับใจ",
+            "ฉันเพลินกับการอดทนอย่างมั่นคงในการเลี้ยงดูผู้เชื่อให้เติบโต",
+            "ฉันชอบอธิบายเรื่องต่าง ๆ แก่คนอื่น เพื่อพวกเขาจะเติบโตฝ่ายวิญญาณ",
+            "ฉันมี/เห็น วิธีแก้ปัญหาที่คนอื่นมองไม่เห็น"
+        ];
+
+        const CATEGORIES = [
+            { id: "ก", name: "การบริหาร", abbr: "Admin", desc: "จัดระเบียบ วางแผน นำแผนมาทำให้เกิดผลลุล่วง และจัดการรายละเอียดต่างๆ" },
+            { id: "ข", name: "อัครทูต", abbr: "Apostle", desc: "บุกเบิกพันธกิจใหม่ๆ ตั้งคริสตจักร ปรับตัวเข้ากับวัฒนธรรมแปลกใหม่" },
+            { id: "ค", name: "ช่างฝีมือ", abbr: "Craft", desc: "ทำงานฝีมือ งานออกแบบ ก่อสร้าง หรือใช้วัสดุอุปกรณ์สนับสนุนคริสตจักร" },
+            { id: "ง", name: "สื่อสารสร้างสรรค์", abbr: "Create", desc: "ใช้ศิลปะ ดนตรี การแสดง หรือเครื่องมือสร้างสรรค์สื่อสารความจริงของพระเจ้า" },
+            { id: "จ", name: "สังเกตวิญญาณ", abbr: "Discern", desc: "แยกแยะวิญญาณ ความจริงกับความเท็จ ความดีความชั่วฝ่ายวิญญาณได้ทันที" },
+            { id: "ฉ", name: "หนุนใจ", abbr: "Exhort", desc: "ปลอบโยน ให้ความหวัง ชี้แนะ และจูงใจผู้อื่นให้เติบโตและผ่านปัญหาไปได้" },
+            { id: "ช", name: "ประกาศข่าวประเสริฐ", abbr: "Evangel", desc: "แบ่งปันข่าวดีเรื่องพระเยซู มีพลังในการจูงใจและสร้างมิตรกับคนต่างความเชื่อ" },
+            { id: "ซ", name: "ความเชื่อ", abbr: "Faith", desc: "วางใจการจัดเตรียมและพระสัญญาของพระเจ้าอย่างแน่วแน่แม้ในยามวิกฤต" },
+            { id: "ฌ", name: "การให้/บริจาค", abbr: "Giving", desc: "แจกจ่ายทรัพย์สินเงินทองด้วยใจยินดีเพื่อสนับสนุนพระราชกิจอย่างเต็มเปี่ยม" },
+            { id: "ญ", name: "การช่วยเหลือ", abbr: "Helps", desc: "ยินดีปรนนิบัติอยู่เบื้องหลัง สนับสนุนภารกิจและกิจกรรมต่างๆ ของผู้อื่น" },
+            { id: "ฎ", name: "การรับรอง/ต้อนรับ", abbr: "Hospit", desc: "เปิดใจ เปิดบ้าน ต้อนรับคนแปลกหน้าและผู้เชื่อให้รู้สึกอบอุ่น ปลอดภัย" },
+            { id: "ฏ", name: "การอธิษฐานวิงวอน", abbr: "Interces", desc: "มีภาระใจและอุทิศเวลาอธิษฐานเผื่อผู้อื่นอย่างมุ่งมั่น และเห็นพระเจ้าตอบอย่างสม่ำเสมอ" },
+            { id: "ฐ", name: "ความรู้", abbr: "Know", desc: "รับถ้อยคำและข้อมูลฝ่ายวิญญาณผ่านการเจาะลึกศึกษาพระคัมภีร์อย่างลึกซึ้ง" },
+            { id: "ฑ", name: "การเป็นผู้นำ", abbr: "Lead", desc: "วางนิมิต ดึงศักยภาพผู้อื่น จัดระเบียบคนและเป้าหมายเพื่อขับเคลื่อนพันธกิจ" },
+            { id: "ฒ", name: "ความเมตตา", abbr: "Mercy", desc: "เห็นใจ รักและห่วงใยผู้เจ็บป่วย ยากไร้ หรือผู้มีปัญหาบาดแผลชีวิตเป็นพิเศษ" },
+            { id: "ณ", name: "การพยากรณ์", abbr: "Prophet", desc: "พูดสื่อสารความจริงของพระเจ้าตามพระวิญญาณนำ กล้าเผชิญหน้าความบาปอย่างตรงไปตรงมา" },
+            { id: "ด", name: "การเลี้ยงดู", abbr: "Pastor", desc: "ดูแล เอาใจใส่ นำทาง และปกป้องฝ่ายวิญญาณแก่กลุ่มผู้เชื่อในระยะยาว" },
+            { id: "ต", name: "การสอน", abbr: "Teach", desc: "อธิบาย วิเคราะห์หลักธรรมคำสอนในพระคัมภีร์ให้เข้าใจกระจ่างและประยุกต์ใช้ได้" },
+            { id: "ถ", name: "สติปัญญา", abbr: "Wisdom", desc: "หาทางออกหรือชี้แนวทางปฏิบัติที่เป็นประโยชน์และทำได้จริงท่ามกลางความสับสน" }
+        ];
+
+        const SCORE_LABELS = [
+            "ไม่เคย/ไม่จริงเลย",
+            "จริงบางครั้ง/นานๆ จริงที",
+            "ส่วนใหญ่จริง/ปกติจริง",
+            "จริงแน่นอน/จริงสม่ำเสมอ"
+        ];
+
+        // ===================== PROGRAMMATIC MOCK DATA GENERATOR =====================
+        const generateMockData = () => {
+            const rolesList = ["ศิษยาภิบาล", "ผู้ปกครอง/มัคนายก", "อาจารย์/ผู้รับใช้เต็มเวลา/สต๊าฟเต็มเวลา", "หัวหน้าเขตและผู้ช่วย", "หัวหน่วยและผู้ช่วย", "หัวหน้าเซลล์และผู้ช่วย", "พี่เลี้ยง", "สมาชิกทั่วไป"];
+            const sectionsList = ["J1", "J2", "J3", "NGM", "OASIS", "รามคำแหง", "อื่นๆ"];
+            const gendersList = ["ชาย", "หญิง"];
+            const ageRangesList = ["13-19", "20-29", "30-39", "40-49", "50-59", "60ขึ้นไป"];
+            const giftIds = CATEGORIES.map(c => c.id);
+
+            const mockList = [];
+            const seedNames = [
+                "มานะ", "วิชัย", "กิตติพงษ์", "สุรศักดิ์", "ประเสริฐ", "สมจิต", "ปรีชา", "ณรงค์", "อภิชาติ", "อนันต์",
+                "วิภาดา", "สมศรี", "จอมขวัญ", "นารีรัตน์", "สิริพร", "ดาริกา", "สุจิตรา", "พัชรี", "นวลจันทร์", "ดารณี",
+                "สิทธิชัย", "ไพโรจน์", "เกรียงศักดิ์", "วิรัช", "พงษ์ศักดิ์", "รังสรรค์", "อุดม", "ธวัชชัย", "เฉลิม", "นิรันดร์",
+                "จารุณี", "เรณู", "วาสนา", "วรรณิกา", "ปิยวรรณ", "อรวรรณ", "กมลวรรณ", "ปรียาพร", "รัชนีกร", "นันทนา",
+                "สมชาย", "พิมพ์ใจ"
+            ];
+
+            for (let i = 0; i < 42; i++) {
+                const name = seedNames[i];
+                const role = rolesList[i % rolesList.length];
+                const section = sectionsList[i % sectionsList.length];
+                const gender = gendersList[i % gendersList.length];
+                const ageRange = ageRangesList[i % ageRangesList.length];
+
+                // สร้างคะแนนสุ่มของของประทาน 19 ตัว (คะแนน 2 ถึง 21) โดยสร้าง Bias บางช่องเพื่อให้กราฟสวยงาม
+                const scores = {};
+                let maxVal = -1;
+                let domList = [];
+
+                giftIds.forEach((gid, gidx) => {
+                    // กำหนด bias ตามดัชนีของตัวจำลองเพื่อให้การกระจายของประทานต่างกันแบบมีทิศทาง
+                    const bias = (gidx + (i % 4) * 3) % 5;
+                    const base = 4 + bias * 3.5; 
+                    const randOffset = Math.floor(Math.random() * 5); 
+                    const score = Math.min(21, Math.round(base + randOffset));
+                    scores[gid] = score;
+
+                    if (score > maxVal) {
+                        maxVal = score;
+                        domList = [gid];
+                    } else if (score === maxVal) {
+                        domList.push(gid);
+                    }
+                });
+
+                const domText = domList.map(g => {
+                    const cObj = CATEGORIES.find(item => item.id === g);
+                    return cObj ? `${cObj.id} (${cObj.name})` : g;
+                }).join(', ');
+
+                mockList.push({
+                    fullName: name + " รักดี",
+                    nickname: name.slice(0, 3),
+                    role: role,
+                    section: section,
+                    gender: gender,
+                    ageRange: ageRange,
+                    scores: scores,
+                    dominantType: domText,
+                    date: new Date(Date.now() - i * 86400000).toISOString()
+                });
+            }
+            return mockList;
+        };
+
+        const MOCK_HISTORY_DATA = generateMockData();
+
+        // ===================== STATS CHART COMPONENT =====================
+        function StatsCharts({ refreshTrigger, userInfo, userScores }) {
+            const chartInstances = useRef({});
+            const [isLoading, setIsLoading] = useState(true);
+            const [statsError, setStatsError] = useState(null);
+            const [history, setHistory] = useState([]);
+            const [statsData, setStatsData] = useState(null);
+
+            const secIdMap = useMemo(() => ({
+                'J1': 'j1',
+                'J2': 'j2',
+                'J3': 'j3',
+                'NGM': 'ngm',
+                'OASIS': 'oasis',
+                'รามคำแหง': 'ram',
+                'อื่นๆ': 'others'
+            }), []);
+
+            // โหลดข้อมูลประวัติทั้งหมด
+            const loadStats = useCallback(() => {
+                setIsLoading(true);
+                setStatsError(null);
+
+                // ค้นหาประวัติที่เซฟไว้ในเครื่อง
+                let localHistory = [];
+                try {
+                    const localHistoryStr = localStorage.getItem('sgt_history');
+                    if (localHistoryStr) {
+                        localHistory = JSON.parse(localHistoryStr);
+                    }
+                } catch(e) {
+                    console.error('Error loading local history:', e);
+                }
+
+                if (!SCRIPT_URL) {
+                    // หากไม่มี SCRIPT_URL ให้ดึงข้อมูล Mock + ข้อมูลเครื่องตัวเองทันที
+                    setTimeout(() => {
+                        const combined = [...localHistory, ...MOCK_HISTORY_DATA];
+                        setHistory(combined);
+                        setIsLoading(false);
+                    }, 500);
+                    return;
+                }
+
+                // ดึงข้อมูลจริงจาก Google Sheets (เพิ่ม Cache-buster เพื่อเลี่ยงการจำค่าเก่าของเบราว์เซอร์)
+                fetch(SCRIPT_URL + '?read=true&_cb=' + new Date().getTime())
+                    .then(res => {
+                        if (!res.ok) throw new Error('การส่งคำขอล้มเหลว');
+                        return res.json();
+                    })
+                    .then(remoteData => {
+                        // รวมข้อมูลที่ดึงมากับข้อมูลที่อาจเพิ่งกดบันทึกในเครื่อง
+                        const combined = [...localHistory, ...remoteData];
+                        
+                        // กรองรายการซ้ำ (เปรียบเทียบจากชื่อและเวลา เพื่อป้องกันข้อมูลซ้ำ)
+                        const uniqueMap = new Map();
+                        combined.forEach(item => {
+                            const key = `${item.fullName || item.FullName}_${item.date || item.Date}`;
+                            uniqueMap.set(key, item);
+                        });
+                        
+                        setHistory(Array.from(uniqueMap.values()));
+                        setIsLoading(false);
+                    })
+                    .catch(err => {
+                        console.error('Stats loading error:', err);
+                        // หากมี SCRIPT_URL แต่ดึงข้อมูลล้มเหลว จะไม่ดึงข้อมูล Mock มาปนเพื่อป้องกันความสับสน
+                        setStatsError('ไม่สามารถเชื่อมต่อฐานข้อมูล Google Sheets ได้ (กำลังแสดงเฉพาะข้อมูลที่เคยทำไว้บนเครื่องนี้)');
+                        setHistory(localHistory);
+                        setIsLoading(false);
+                    });
+            }, []);
+
+            const handleClearLocalCache = () => {
+                if (window.confirm("คุณต้องการล้างข้อมูลผู้ทำแบบประเมินที่ถูกบันทึกชั่วคราวบนเครื่องนี้ใช่หรือไม่? (จะไม่ส่งผลกระทบต่อข้อมูลจริงใน Google Sheets)")) {
+                    localStorage.removeItem('sgt_history');
+                    loadStats();
+                }
+            };
+
+            useEffect(() => {
+                loadStats();
+            }, [refreshTrigger, loadStats]);
+
+            // คำนวณสรุปสถิติเมื่อข้อมูลประวัติเปลี่ยน
+            useEffect(() => {
+                // โครงสร้างสะสมผลสถิติสำหรับของประทาน 19 ตัว
+                const giftCounts = {};
+                CATEGORIES.forEach(c => { giftCounts[c.id] = 0; });
+
+                const sections = ["J1", "J2", "J3", "NGM", "OASIS", "รามคำแหง", "อื่นๆ"];
+                const sectionByGift = {};
+                sections.forEach(sec => {
+                    sectionByGift[sec] = {};
+                    CATEGORIES.forEach(c => { sectionByGift[sec][c.id] = 0; });
+                });
+
+                const roles = ["ศิษยาภิบาล", "ผู้ปกครอง/มัคนายก", "อาจารย์/ผู้รับใช้เต็มเวลา/สต๊าฟเต็มเวลา", "หัวหน้าเขตและผู้ช่วย", "หัวหน่วยและผู้ช่วย", "หัวหน้าเซลล์และผู้ช่วย", "พี่เลี้ยง", "สมาชิกทั่วไป"];
+                const roleByGift = {};
+                roles.forEach(role => {
+                    roleByGift[role] = {};
+                    CATEGORIES.forEach(c => { roleByGift[role][c.id] = 0; });
+                });
+
+                const ageRanges = ["13-19", "20-29", "30-39", "40-49", "50-59", "60ขึ้นไป"];
+                const ageByGift = {};
+                ageRanges.forEach(age => {
+                    ageByGift[age] = {};
+                    CATEGORIES.forEach(c => { ageByGift[age][c.id] = 0; });
+                });
+
+                const genderByGift = {
+                    'ชาย': {},
+                    'หญิง': {}
+                };
+                CATEGORIES.forEach(c => {
+                    genderByGift['ชาย'][c.id] = 0;
+                    genderByGift['หญิง'][c.id] = 0;
+                });
+
+                let totalRespondents = 0;
+
+                history.forEach(item => {
+                    const scores = item.scores || item.Scores;
+                    if (!scores) return;
+
+                    // ค้นหาของประทานที่ได้คะแนนสูงสุดของแต่ละคน (หากเสมอกันจะเอาหมด)
+                    let maxVal = -1;
+                    let domList = [];
+                    CATEGORIES.forEach(c => {
+                        const val = Number(scores[c.id]) || 0;
+                        if (val > maxVal) {
+                            maxVal = val;
+                            domList = [c.id];
+                        } else if (val === maxVal && val > 0) {
+                            domList.push(c.id);
+                        }
+                    });
+
+                    if (maxVal > 0) {
+                        totalRespondents++;
+                        
+                        // เลือกของประทานสูงสุดเพียงตัวเดียว (หากเสมอกันให้สุ่มตัวเดียวแบบ deterministic อิงจากชื่อและเวลา เพื่อให้ค่าสถิตินิ่งไม่ดิ้นตอนรีโหลดหน้าจอ)
+                        let selectedGid = domList[0];
+                        if (domList.length > 1) {
+                            const seedStr = (item.date || '') + (item.fullName || '') + (item.nickname || '');
+                            let hash = 0;
+                            for (let i = 0; i < seedStr.length; i++) {
+                                hash = seedStr.charCodeAt(i) + ((hash << 5) - hash);
+                            }
+                            const idx = Math.abs(hash) % domList.length;
+                            selectedGid = domList[idx];
+                        }
+
+                        giftCounts[selectedGid]++;
+
+                        // แผนก/ส่วน
+                        let itemSec = item.section || item.Section;
+                        if (itemSec) {
+                            itemSec = itemSec.trim();
+                            if (sectionByGift[itemSec]) {
+                                sectionByGift[itemSec][selectedGid]++;
+                            } else {
+                                sectionByGift["อื่นๆ"][selectedGid]++;
+                            }
+                        } else {
+                            sectionByGift["อื่นๆ"][selectedGid]++;
+                        }
+
+                        // บทบาท
+                        let itemRole = item.role || item.Role;
+                        if (itemRole) {
+                            itemRole = itemRole.trim();
+                            if (roleByGift[itemRole]) {
+                                roleByGift[itemRole][selectedGid]++;
+                            } else {
+                                roleByGift["สมาชิกทั่วไป"][selectedGid]++;
+                            }
+                        } else {
+                            roleByGift["สมาชิกทั่วไป"][selectedGid]++;
+                        }
+
+                        // กลุ่มอายุ
+                        let itemAge = item.ageRange || item.AgeRange || item.age || item.Age;
+                        if (itemAge) {
+                            itemAge = itemAge.trim();
+                            if (ageByGift[itemAge]) ageByGift[itemAge][selectedGid]++;
+                        }
+
+                        // เพศ
+                        let itemGen = item.gender || item.Gender;
+                        if (itemGen) {
+                            itemGen = itemGen.trim();
+                            if (genderByGift[itemGen]) genderByGift[itemGen][selectedGid]++;
+                        }
+                    }
+                });
+
+                setStatsData({
+                    giftCounts,
+                    sectionByGift,
+                    roleByGift,
+                    ageByGift,
+                    genderByGift,
+                    totalRespondents
+                });
+            }, [history]);
+
+            // วาดกราฟสรุปทั้งหมด
+            useEffect(() => {
+                if (!statsData) return;
+
+                // ทำลายกราฟเก่าทั้งหมดถ้ามี
+                Object.values(chartInstances.current).forEach(chart => {
+                    if (chart && typeof chart.destroy === 'function') chart.destroy();
+                });
+
+                const labels = CATEGORIES.map(c => c.id); // 'ก', 'ข', 'ค' ...
+                const fullNames = CATEGORIES.map(c => `${c.id} ${c.name}`);
+
+                const commonOptions = {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                title: (tooltipItems) => {
+                                    const index = tooltipItems[0].dataIndex;
+                                    return fullNames[index];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                    }
+                };
+
+                const stackedOptions = {
+                    ...commonOptions,
+                    plugins: {
+                        ...commonOptions.plugins,
+                        legend: { display: true, position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
+                    },
+                    scales: {
+                        x: { stacked: true, grid: { display: false } },
+                        y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } }
+                    }
+                };
+
+                // 1. กราฟสรุปจำนวนผู้มีของประทานเด่นแต่ละอย่าง
+                const ctxTotal = document.getElementById('chart-total-gifts');
+                if (ctxTotal) {
+                    chartInstances.current.total = new Chart(ctxTotal, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'จำนวนคน (ที่มีของประทานนี้เด่นที่สุด)',
+                                data: CATEGORIES.map(c => statsData.giftCounts[c.id]),
+                                backgroundColor: '#7c3aed',
+                                borderRadius: 6
+                            }]
+                        },
+                        options: {
+                            ...commonOptions,
+                            plugins: {
+                                ...commonOptions.plugins,
+                                legend: { display: false }
+                            }
+                        }
+                    });
+                }
+
+                // 2. กราฟสรุปแยกตามส่วน
+                const ctxSection = document.getElementById('chart-section-gifts');
+                if (ctxSection) {
+                    const sections = ["J1", "J2", "J3", "NGM", "OASIS", "รามคำแหง", "อื่นๆ"];
+                    const sectionColors = {
+                        'J1': '#06b6d4',
+                        'J2': '#2563eb',
+                        'J3': '#8b5cf6',
+                        'NGM': '#ec4899',
+                        'OASIS': '#10b981',
+                        'รามคำแหง': '#f59e0b',
+                        'อื่นๆ': '#64748b'
+                    };
+                    const datasets = sections.map(sec => ({
+                        label: sec,
+                        data: CATEGORIES.map(c => statsData.sectionByGift[sec][c.id]),
+                        backgroundColor: sectionColors[sec]
+                    }));
+
+                    chartInstances.current.section = new Chart(ctxSection, {
+                        type: 'bar',
+                        data: { labels, datasets },
+                        options: stackedOptions
+                    });
+                }
+
+                // 3. กราฟสรุปแยกตามบทบาท
+                const ctxRole = document.getElementById('chart-role-gifts');
+                if (ctxRole) {
+                    const roles = ["ศิษยาภิบาล", "ผู้ปกครอง/มัคนายก", "อาจารย์/ผู้รับใช้เต็มเวลา/สต๊าฟเต็มเวลา", "หัวหน้าเขตและผู้ช่วย", "หัวหน่วยและผู้ช่วย", "หัวหน้าเซลล์และผู้ช่วย", "พี่เลี้ยง", "สมาชิกทั่วไป"];
+                    const roleColors = {
+                        'ศิษยาภิบาล': '#1e3a8a',
+                        'ผู้ปกครอง/มัคนายก': '#0284c7',
+                        'อาจารย์/ผู้รับใช้เต็มเวลา/สต๊าฟเต็มเวลา': '#0d9488',
+                        'หัวหน้าเขตและผู้ช่วย': '#059669',
+                        'หัวหน่วยและผู้ช่วย': '#16a34a',
+                        'หัวหน้าเซลล์และผู้ช่วย': '#7c3aed',
+                        'พี่เลี้ยง': '#db2777',
+                        'สมาชิกทั่วไป': '#64748b'
+                    };
+                    const datasets = roles.map(role => ({
+                        label: role,
+                        data: CATEGORIES.map(c => statsData.roleByGift[role][c.id]),
+                        backgroundColor: roleColors[role] || '#cbd5e1'
+                    }));
+
+                    chartInstances.current.role = new Chart(ctxRole, {
+                        type: 'bar',
+                        data: { labels, datasets },
+                        options: stackedOptions
+                    });
+                }
+
+                // 4. กราฟสรุปแยกตามกลุ่มอายุ
+                const ctxAge = document.getElementById('chart-age-gifts');
+                if (ctxAge) {
+                    const ageRanges = ["13-19", "20-29", "30-39", "40-49", "50-59", "60ขึ้นไป"];
+                    const ageColors = {
+                        '13-19': '#f87171',
+                        '20-29': '#fb923c',
+                        '30-39': '#fbbf24',
+                        '40-49': '#34d399',
+                        '50-59': '#60a5fa',
+                        '60ขึ้นไป': '#a78bfa'
+                    };
+                    const datasets = ageRanges.map(age => ({
+                        label: age,
+                        data: CATEGORIES.map(c => statsData.ageByGift[age][c.id]),
+                        backgroundColor: ageColors[age]
+                    }));
+
+                    chartInstances.current.age = new Chart(ctxAge, {
+                        type: 'bar',
+                        data: { labels, datasets },
+                        options: stackedOptions
+                    });
+                }
+
+                // 5. กราฟสรุปแยกตามเพศ
+                const ctxGender = document.getElementById('chart-gender-gifts');
+                if (ctxGender) {
+                    const genders = ["ชาย", "หญิง"];
+                    const genderColors = {
+                        'ชาย': '#3b82f6',
+                        'หญิง': '#ec4899'
+                    };
+                    const datasets = genders.map(gen => ({
+                        label: gen,
+                        data: CATEGORIES.map(c => statsData.genderByGift[gen][c.id]),
+                        backgroundColor: genderColors[gen]
+                    }));
+
+                    chartInstances.current.gender = new Chart(ctxGender, {
+                        type: 'bar',
+                        data: { labels, datasets },
+                        options: stackedOptions
+                    });
+                }
+
+                // 6. กราฟวงกลมสัดส่วนของประทานแยกตามแผนก/ส่วน (J1, J2, J3, NGM, OASIS, รามคำแหง, อื่นๆ)
+                const sectionsList = ["J1", "J2", "J3", "NGM", "OASIS", "รามคำแหง", "อื่นๆ"];
+                sectionsList.forEach(sec => {
+                    const canvasId = `chart-pie-section-${secIdMap[sec]}`;
+                    const ctxSecPie = document.getElementById(canvasId);
+                    if (ctxSecPie) {
+                        const rawData = statsData.sectionByGift[sec] || {};
+                        const activeGifts = CATEGORIES.filter(c => (rawData[c.id] || 0) > 0);
+                        
+                        if (activeGifts.length === 0) {
+                            chartInstances.current[`pie_${secIdMap[sec]}`] = new Chart(ctxSecPie, {
+                                type: 'doughnut',
+                                data: {
+                                    labels: ['ไม่มีข้อมูล'],
+                                    datasets: [{
+                                        data: [1],
+                                        backgroundColor: ['#f1f5f9'],
+                                        borderWidth: 0
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        legend: { display: false },
+                                        tooltip: {
+                                            callbacks: {
+                                                label: () => ' ยังไม่มีผู้ทำแบบประเมินในส่วนนี้'
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        } else {
+                            chartInstances.current[`pie_${secIdMap[sec]}`] = new Chart(ctxSecPie, {
+                                type: 'doughnut',
+                                data: {
+                                    labels: activeGifts.map(c => `${c.id} - ${c.name}`),
+                                    datasets: [{
+                                        data: activeGifts.map(c => rawData[c.id]),
+                                        backgroundColor: activeGifts.map(c => {
+                                            const idx = CATEGORIES.findIndex(cat => cat.id === c.id);
+                                            const hue = (idx * 360 / 19) % 360;
+                                            return `hsla(${hue}, 70%, 55%, 0.85)`;
+                                        }),
+                                        borderColor: activeGifts.map(c => {
+                                            const idx = CATEGORIES.findIndex(cat => cat.id === c.id);
+                                            const hue = (idx * 360 / 19) % 360;
+                                            return `hsl(${hue}, 70%, 45%)`;
+                                        }),
+                                        borderWidth: 1.5
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        legend: { display: false },
+                                        tooltip: {
+                                            callbacks: {
+                                                label: (context) => {
+                                                    const val = context.raw;
+                                                    const label = context.label;
+                                                    return ` ${label}: ${val} คน`;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
+
+                return () => {
+                    Object.values(chartInstances.current).forEach(chart => {
+                        if (chart && typeof chart.destroy === 'function') chart.destroy();
+                    });
+                };
+            }, [statsData]);
+
+            return (
+                <div className="mt-8 border-t border-purple-200 pt-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
+                        <div>
+                            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                <span className="w-2.5 h-6 bg-indigo-600 rounded-full inline-block"></span>
+                                สถิติรวมของผู้ทำแบบประเมิน
+                            </h2>
+                            <p className="text-xs text-slate-500 mt-1">ประมวลผลของประทานเด่นจากฐานข้อมูลผู้ร่วมทำประเมินทั้งหมด ({history.length} คน)</p>
+                        </div>
+                        <div className="flex gap-2 flex-wrap">
+                            <button
+                                onClick={handleClearLocalCache}
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 shadow-sm active:scale-95 transition-all"
+                            >
+                                🗑️ ล้างแคชเครื่องตัวเอง
+                            </button>
+                            <button
+                                onClick={loadStats}
+                                disabled={isLoading}
+                                className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl border transition-all ${
+                                    isLoading
+                                    ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                                    : 'bg-white hover:bg-slate-50 text-indigo-600 border-indigo-200 shadow-sm active:scale-95'
+                                }`}
+                            >
+                                <svg className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89M9 11l3-3m0 0l3 3m-3-3v8"></path>
+                                </svg>
+                                {isLoading ? 'กำลังโหลด...' : 'รีเฟรชข้อมูลสถิติ'}
+                            </button>
+                        </div>
+                    </div>
+
+                    {statsError && (
+                        <div className="p-3 bg-amber-50 text-amber-800 text-xs rounded-xl border border-amber-200 mb-6 leading-relaxed">
+                            ⚠️ <strong>หมายเหตุ:</strong> {statsError}
+                        </div>
+                    )}
+
+                    {isLoading ? (
+                        <div className="text-center py-10">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+                            <p className="mt-2 text-slate-500 text-sm">กำลังคำนวณข้อมูลสถิติ...</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-6">
+                            {/* Summary Cards */}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+                                <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 text-center shadow-sm">
+                                    <div className="text-2xl font-bold text-indigo-700">{history.length}</div>
+                                    <div className="text-xs font-semibold text-indigo-900">ผู้ประเมินทั้งหมด</div>
+                                </div>
+                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-center">
+                                    <div className="text-2xl font-bold text-emerald-600">
+                                        {history.filter(i => (i.section || i.Section) === 'J1').length}
+                                    </div>
+                                    <div className="text-xs text-slate-500">ส่วน J1</div>
+                                </div>
+                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-center">
+                                    <div className="text-2xl font-bold text-blue-600">
+                                        {history.filter(i => (i.section || i.Section) === 'J2').length}
+                                    </div>
+                                    <div className="text-xs text-slate-500">ส่วน J2</div>
+                                </div>
+                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-center">
+                                    <div className="text-2xl font-bold text-purple-600">
+                                        {history.filter(i => (i.section || i.Section) === 'J3').length}
+                                    </div>
+                                    <div className="text-xs text-slate-500">ส่วน J3</div>
+                                </div>
+                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-center">
+                                    <div className="text-2xl font-bold text-orange-600">
+                                        {history.filter(i => (i.section || i.Section) === 'NGM').length}
+                                    </div>
+                                    <div className="text-xs text-slate-500">ส่วน NGM</div>
+                                </div>
+                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-center">
+                                    <div className="text-2xl font-bold text-pink-600">
+                                        {history.filter(i => (i.section || i.Section) === 'OASIS').length}
+                                    </div>
+                                    <div className="text-xs text-slate-500">ส่วน OASIS</div>
+                                </div>
+                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-center">
+                                    <div className="text-2xl font-bold text-teal-600">
+                                        {history.filter(i => (i.section || i.Section) === 'รามคำแหง').length}
+                                    </div>
+                                    <div className="text-xs text-slate-500">รามคำแหง</div>
+                                </div>
+                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-center">
+                                    <div className="text-2xl font-bold text-slate-600">
+                                        {history.filter(i => {
+                                            const sec = i.section || i.Section;
+                                            return !['J1', 'J2', 'J3', 'NGM', 'OASIS', 'รามคำแหง'].includes(sec);
+                                        }).length}
+                                    </div>
+                                    <div className="text-xs text-slate-500">อื่นๆ</div>
+                                </div>
+                            </div>
+
+                            {/* Charts Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Chart 1 */}
+                                <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col">
+                                    <h3 className="text-sm font-semibold text-slate-700 mb-3 text-center">7.1. จำนวนของคนที่มีของประทานเด่นแต่ละอย่าง</h3>
+                                    <div className="h-60 relative w-full">
+                                        <canvas id="chart-total-gifts"></canvas>
+                                    </div>
+                                </div>
+
+                                {/* Chart 2 */}
+                                <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col">
+                                    <h3 className="text-sm font-semibold text-slate-700 mb-3 text-center">7.2. ของประทานเด่นแบ่งตาม "ส่วน/แผนก"</h3>
+                                    <div className="h-60 relative w-full">
+                                        <canvas id="chart-section-gifts"></canvas>
+                                    </div>
+                                </div>
+
+                                {/* Chart 3 */}
+                                <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col md:col-span-2">
+                                    <h3 className="text-sm font-semibold text-slate-700 mb-3 text-center">7.3. ของประทานเด่นแบ่งตาม "บทบาท/ตำแหน่งหน้าที่รับใช้"</h3>
+                                    <div className="h-64 relative w-full">
+                                        <canvas id="chart-role-gifts"></canvas>
+                                    </div>
+                                </div>
+
+                                {/* Chart 4 */}
+                                <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col">
+                                    <h3 className="text-sm font-semibold text-slate-700 mb-3 text-center">7.4. ของประทานเด่นแบ่งตาม "กลุ่มอายุ"</h3>
+                                    <div className="h-60 relative w-full">
+                                        <canvas id="chart-age-gifts"></canvas>
+                                    </div>
+                                </div>
+
+                                {/* Chart 5 (Pie Charts for each section) */}
+                                <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:col-span-2">
+                                    <h3 className="text-sm font-bold text-indigo-950 mb-4 text-center">7.5. สัดส่วนของประทานเด่นจำแนกตามส่วน/แผนก (กราฟวงกลม)</h3>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                                        {["J1", "J2", "J3", "NGM", "OASIS", "รามคำแหง", "อื่นๆ"].map(sec => (
+                                            <div key={sec} className="bg-slate-50/50 p-3 rounded-xl border border-slate-150 flex flex-col items-center shadow-inner">
+                                                <span className="text-xs font-bold text-slate-700 mb-2">ส่วน {sec}</span>
+                                                <div className="h-32 w-32 relative">
+                                                    <canvas id={`chart-pie-section-${secIdMap[sec]}`}></canvas>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Chart 6 */}
+                                <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col md:col-span-2">
+                                    <h3 className="text-sm font-semibold text-slate-700 mb-3 text-center">7.6. ของประทานเด่นจำแนกรายเพศ (ชาย/หญิง)</h3>
+                                    <div className="h-60 relative w-full">
+                                        <canvas id="chart-gender-gifts"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // ===================== MAIN APP COMPONENT =====================
+        function App() {
+            // answers: { questionIndex: score }
+            const [answers, setAnswers] = useState(() => {
+                const saved = localStorage.getItem('sgt_state');
+                if (saved) {
+                    try { return JSON.parse(saved).answers || {}; } catch(e) {}
+                }
+                return {};
+            });
+            const [userInfo, setUserInfo] = useState(() => {
+                const saved = localStorage.getItem('sgt_state');
+                if (saved) {
+                    try {
+                        const parsed = JSON.parse(saved).userInfo || {};
+                        return {
+                            fullName: parsed.fullName || '',
+                            nickname: parsed.nickname || '',
+                            role: parsed.role || '',
+                            section: parsed.section || '',
+                            gender: parsed.gender || '',
+                            ageRange: parsed.ageRange || ''
+                        };
+                    } catch(e) {}
+                }
+                return { fullName: '', nickname: '', role: '', section: '', gender: '', ageRange: '' };
+            });
+
+            const [step, setStep] = useState(0); // 0=register, 1-7=questions, 8=results
+            const [submitted, setSubmitted] = useState(() => {
+                return localStorage.getItem('sgt_submitted') === 'true';
+            });
+            const [isSubmitting, setIsSubmitting] = useState(false);
+            const [isCapturing, setIsCapturing] = useState(false);
+            const [capturedImage, setCapturedImage] = useState(null);
+            const [refreshStatsTrigger, setRefreshStatsTrigger] = useState(0);
+            const [formError, setFormError] = useState('');
+            const [showAllTopGifts, setShowAllTopGifts] = useState(false);
+            const [showAllBottomGifts, setShowAllBottomGifts] = useState(false);
+
+            // จัดเก็บสถานะเมื่อกรอกคำตอบหรือเปลี่ยนข้อมูลผู้ใช้
+            const saveState = (updatedAnswers, updatedUser) => {
+                localStorage.setItem('sgt_state', JSON.stringify({
+                    answers: updatedAnswers,
+                    userInfo: updatedUser
+                }));
+            };
+
+            const handleUserInfoChange = (field, val) => {
+                const updatedUser = { ...userInfo, [field]: val };
+                setUserInfo(updatedUser);
+                saveState(answers, updatedUser);
+            };
+
+            const handleAnswerSelect = (qIdx, score) => {
+                const updatedAnswers = { ...answers, [qIdx]: score };
+                setAnswers(updatedAnswers);
+                saveState(updatedAnswers, userInfo);
+            };
+
+            // อิงคะแนนรายหมวดหมู่ (19 ด้าน)
+            const catScores = useMemo(() => {
+                return CATEGORIES.map((cat, ci) => {
+                    // แต่ละหมวดหมู่จะมีคำถาม 7 ข้อ: ci, ci+19, ci+38, ci+57, ci+76, ci+95, ci+114
+                    const qIndices = [0,1,2,3,4,5,6].map(r => ci + r * 19);
+                    const scoresList = qIndices.map(qi => answers[qi] !== undefined ? answers[qi] : null);
+                    const total = scoresList.reduce((acc, v) => acc + (v !== null ? v : 0), 0);
+                    return { cat, qIndices, scoresList, total };
+                });
+            }, [answers]);
+
+            // คำนวณแบบจัดลำดับ Descending (จากมากไปน้อย)
+            const rankedGiftsDesc = useMemo(() => {
+                if (catScores.length === 0) return [];
+                const sorted = [...catScores].sort((a, b) => b.total - a.total);
+                let currentRank = 0;
+                let lastScore = -1;
+                return sorted.map((item) => {
+                    if (item.total !== lastScore) {
+                        currentRank++;
+                        lastScore = item.total;
+                    }
+                    let emoji = '🎖️';
+                    if (currentRank === 1) emoji = '🥇';
+                    else if (currentRank === 2) emoji = '🥈';
+                    else if (currentRank === 3) emoji = '🥉';
+                    
+                    return {
+                        item,
+                        rank: currentRank,
+                        score: item.total,
+                        emoji
+                    };
+                });
+            }, [catScores]);
+
+            // คำนวณแบบจัดลำดับ Ascending (จากน้อยไปมาก)
+            const rankedGiftsAsc = useMemo(() => {
+                if (catScores.length === 0) return [];
+                const sorted = [...catScores].sort((a, b) => a.total - b.total);
+                let currentRank = 0;
+                let lastScore = -1;
+                return sorted.map((item) => {
+                    if (item.total !== lastScore) {
+                        currentRank++;
+                        lastScore = item.total;
+                    }
+                    return {
+                        item,
+                        rank: currentRank,
+                        score: item.total,
+                        emoji: '📌'
+                    };
+                });
+            }, [catScores]);
+
+            // ค่าสูงสุด-ต่ำสุดสำหรับสถิติเบื้องต้น
+            const maxScore = useMemo(() => {
+                if (catScores.length === 0) return 0;
+                return Math.max(...catScores.map(c => c.total));
+            }, [catScores]);
+
+            const minScore = useMemo(() => {
+                if (catScores.length === 0) return 0;
+                return Math.min(...catScores.map(c => c.total));
+            }, [catScores]);
+
+            // บันทึกรูปผลลัพธ์
+            const handleSaveImage = () => {
+                const element = document.getElementById('personal-result-capture');
+                if (!element) return;
+
+                setIsCapturing(true);
+                html2canvas(element, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff'
+                }).then(canvas => {
+                    const imgData = canvas.toDataURL('image/png');
+                    setCapturedImage(imgData);
+                    setIsCapturing(false);
+                }).catch(err => {
+                    console.error('Error rendering screenshot:', err);
+                    alert('เกิดข้อผิดพลาดในการแปลงไฟล์รูปภาพ โปรดลองอีกครั้ง');
+                    setIsCapturing(false);
+                });
+            };
+
+            // ส่งข้อมูลสรุปไปประมวลผล
+            const handleFormSubmit = () => {
+                // ตรวจสอบความถูกต้องของการกรอกข้อมูลผู้ใช้งาน
+                if (!userInfo.fullName.trim() || !userInfo.nickname.trim() || !userInfo.role || !userInfo.section || !userInfo.gender || !userInfo.ageRange) {
+                    setFormError('กรุณากรอกข้อมูลและเลือกบทบาท, ส่วน, เพศ, และกลุ่มอายุให้ครบถ้วนก่อนเริ่มทำแบบทดสอบ');
+                    window.scrollTo(0, 0);
+                    return;
+                }
+                setFormError('');
+                setStep(1);
+            };
+
+            const handleCalculateResults = () => {
+                // ตรวจสอบว่าทำครบ 133 ข้อหรือไม่
+                for (let i = 0; i < 133; i++) {
+                    if (answers[i] === undefined) {
+                        setFormError(`กรุณาตอบคำถามให้ครบทุกข้อก่อนการส่งสรุปผล (คุณตอบไปแล้ว ${Object.keys(answers).length} จาก 133 ข้อ)`);
+                        
+                        // ค้นหาหน้าที่ไม่เสร็จแล้วสลับไป
+                        const targetPage = Math.floor(i / 19) + 1;
+                        setStep(targetPage);
+                        setTimeout(() => {
+                            const el = document.getElementById(`qi_${i}`);
+                            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }, 200);
+                        return;
+                    }
+                }
+
+                setFormError('');
+                setIsSubmitting(true);
+
+                // ค้นหาของประทานที่มีผลคะแนนเด่นเพื่อส่งไปที่ Database
+                const topRankGiftsText = rankedGiftsDesc
+                    .filter(g => g.rank === 1)
+                    .map(g => `${g.item.cat.id} (${g.item.cat.name})`)
+                    .join(', ');
+
+                // แปลงผลคะแนนแยกตามหมวดหมู่ส่งไปยังชีต
+                const finalScoresMap = {};
+                CATEGORIES.forEach(c => {
+                    const found = catScores.find(cs => cs.cat.id === c.id);
+                    finalScoresMap[c.id] = found ? found.total : 0;
+                });
+
+                const resultRecord = {
+                    fullName: userInfo.fullName.trim(),
+                    nickname: userInfo.nickname.trim(),
+                    role: userInfo.role,
+                    section: userInfo.section,
+                    gender: userInfo.gender,
+                    ageRange: userInfo.ageRange,
+                    scores: finalScoresMap,
+                    dominantType: topRankGiftsText,
+                    date: new Date().toISOString()
+                };
+
+                // บันทึกประวัติในเครื่อง
+                try {
+                    const localHistoryStr = localStorage.getItem('sgt_history') || '[]';
+                    const localHistory = JSON.parse(localHistoryStr);
+                    // ป้องกันการแอดข้อมูลเดิมซ้ำโดยลบตัวที่ชนกันออก
+                    const filteredHistory = localHistory.filter(i => !(i.fullName === resultRecord.fullName && i.date === resultRecord.date));
+                    filteredHistory.push(resultRecord);
+                    localStorage.setItem('sgt_history', JSON.stringify(filteredHistory));
+                } catch(e) {
+                    console.error('Error saving local history data:', e);
+                }
+
+                // ส่งเข้าคลาวด์ Google Sheets หากกำหนดไว้
+                if (SCRIPT_URL) {
+                    fetch(SCRIPT_URL, {
+                        method: 'POST',
+                        body: JSON.stringify(resultRecord),
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                    })
+                    .then(() => console.log('Saved to Google Sheets Spreadsheet successfully!'))
+                    .catch(err => console.error('Save to Sheets error:', err))
+                    .finally(() => {
+                        finishSubmission();
+                    });
+                } else {
+                    finishSubmission();
+                }
+            };
+
+            const finishSubmission = () => {
+                setIsSubmitting(false);
+                setSubmitted(true);
+                localStorage.setItem('sgt_submitted', 'true');
+                localStorage.setItem('sgt_results', JSON.stringify(answers));
+                localStorage.setItem('sgt_userInfo', JSON.stringify(userInfo));
+                setStep(8); // ไปที่หน้าสรุปผล
+                setRefreshStatsTrigger(p => p + 1); // กระตุ้นการรีเฟรชสถิติ
+            };
+
+            const handleRestartTest = () => {
+                if (confirm('คุณต้องการรีเซ็ตคำตอบและเริ่มต้นทำแบบประเมินใหม่อีกครั้งใช่หรือไม่?')) {
+                    localStorage.removeItem('sgt_submitted');
+                    localStorage.removeItem('sgt_results');
+                    localStorage.removeItem('sgt_state');
+                    setAnswers({});
+                    setUserInfo({ fullName: '', nickname: '', role: '', section: '', gender: '', ageRange: '' });
+                    setSubmitted(false);
+                    setStep(0);
+                    setFormError('');
+                    setShowAllTopGifts(false);
+                    setShowAllBottomGifts(false);
+                }
+            };
+
+            // วาดกราฟเปรียบเทียบคะแนนเดี่ยว
+            useEffect(() => {
+                if (step !== 8 && !submitted) return;
+
+                const ctx = document.getElementById('chart-personal-comparison');
+                if (!ctx) return;
+
+                const chart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: CATEGORIES.map(c => c.id), // 'ก', 'ข', 'ค' ...
+                        datasets: [{
+                            label: 'คะแนนของคุณ (เต็ม 21 คะแนน)',
+                            data: catScores.map(cs => cs.total),
+                            backgroundColor: catScores.map((cs, index) => {
+                                // สุ่มเฉดสีม่วง-น้ำเงินให้ดูหรูหรามีสีสัน
+                                const hue = 250 + (index * 6);
+                                return `hsla(${hue}, 70%, 55%, 0.85)`;
+                            }),
+                            borderColor: catScores.map((cs, index) => {
+                                const hue = 250 + (index * 6);
+                                return `hsl(${hue}, 70%, 45%)`;
+                            }),
+                            borderWidth: 1.5,
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    title: (items) => {
+                                        const i = items[0].dataIndex;
+                                        return `${CATEGORIES[i].id} = ${CATEGORIES[i].name}`;
+                                    },
+                                    label: (item) => ` คะแนน: ${item.raw} / 21 คะแนน`
+                                }
+                            }
+                        },
+                        scales: {
+                            y: { beginAtZero: true, max: 21, grid: { color: '#e9d5ff' } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+
+                return () => {
+                    chart.destroy();
+                };
+            }, [step, submitted, catScores]);
+
+            // สลับกลับหน้าสรุปผลอัตโนมัติหากทำเสร็จสิ้นไปแล้ว
+            useEffect(() => {
+                if (submitted) setStep(8);
+            }, [submitted]);
+
+            // ===================== RENDER TEMPLATES =====================
+
+            // --- หน้าลงทะเบียน ---
+            if (step === 0) {
+                return (
+                    <div className="max-w-3xl mx-auto p-4 sm:p-6 mt-4 sm:mt-10 animate-slideUp">
+                        <div className="card rounded-2xl p-6 sm:p-10 shadow-xl">
+                            <div className="text-center mb-8">
+                                <h1 className="text-2xl sm:text-3xl font-extrabold text-indigo-800">แบบประเมินของประทานฝ่ายวิญญาณ</h1>
+                            </div>
+
+                            {formError && (
+                                <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm mb-6 leading-relaxed">
+                                    ⚠️ {formError}
+                                </div>
+                            )}
+
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="text-sm font-semibold text-slate-700">ชื่อ-นามสกุล</label>
+                                        <input
+                                            type="text"
+                                            placeholder="กรอกชื่อ-นามสกุลจริง"
+                                            value={userInfo.fullName}
+                                            onChange={(e) => handleUserInfoChange('fullName', e.target.value)}
+                                            className="border border-purple-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition"
+                                        />
+                                    </div>
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="text-sm font-semibold text-slate-700">ชื่อเล่น</label>
+                                        <input
+                                            type="text"
+                                            placeholder="กรอกชื่อเล่น"
+                                            value={userInfo.nickname}
+                                            onChange={(e) => handleUserInfoChange('nickname', e.target.value)}
+                                            className="border border-purple-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="text-sm font-semibold text-slate-700">บทบาท/ตำแหน่งรับใช้</label>
+                                        <select
+                                            value={userInfo.role}
+                                            onChange={(e) => handleUserInfoChange('role', e.target.value)}
+                                            className="border border-purple-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition bg-white"
+                                        >
+                                            <option value="">-- เลือกบทบาทตำแหน่ง --</option>
+                                            <option value="ศิษยาภิบาล">1. ศิษยาภิบาล</option>
+                                            <option value="ผู้ปกครอง/มัคนายก">2. ผู้ปกครอง/มัคนายก</option>
+                                            <option value="อาจารย์/ผู้รับใช้เต็มเวลา/สต๊าฟเต็มเวลา">3. อาจารย์/ผู้รับใช้เต็มเวลา/สต๊าฟเต็มเวลา</option>
+                                            <option value="หัวหน้าเขตและผู้ช่วย">4. หัวหน้าเขตและผู้ช่วย</option>
+                                            <option value="หัวหน่วยและผู้ช่วย">5. หัวหน่วยและผู้ช่วย</option>
+                                            <option value="หัวหน้าเซลล์และผู้ช่วย">6. หัวหน้าเซลล์และผู้ช่วย</option>
+                                            <option value="พี่เลี้ยง">7. พี่เลี้ยง</option>
+                                            <option value="สมาชิกทั่วไป">8. สมาชิกทั่วไป</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="text-sm font-semibold text-slate-700">ส่วน / สังกัด</label>
+                                        <select
+                                            value={userInfo.section}
+                                            onChange={(e) => handleUserInfoChange('section', e.target.value)}
+                                            className="border border-purple-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition bg-white"
+                                        >
+                                            <option value="">-- เลือกสังกัดส่วนงาน --</option>
+                                            <option value="J1">J1</option>
+                                            <option value="J2">J2</option>
+                                            <option value="J3">J3</option>
+                                            <option value="NGM">NGM</option>
+                                            <option value="OASIS">OASIS</option>
+                                            <option value="รามคำแหง">รามคำแหง</option>
+                                            <option value="อื่นๆ">อื่นๆ</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="text-sm font-semibold text-slate-700">เพศ</label>
+                                        <select
+                                            value={userInfo.gender}
+                                            onChange={(e) => handleUserInfoChange('gender', e.target.value)}
+                                            className="border border-purple-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition bg-white"
+                                        >
+                                            <option value="">-- เลือกเพศ --</option>
+                                            <option value="ชาย">ชาย</option>
+                                            <option value="หญิง">หญิง</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="text-sm font-semibold text-slate-700">กลุ่มอายุ</label>
+                                        <div className="flex flex-wrap gap-2 mt-1">
+                                            {["13-19", "20-29", "30-39", "40-49", "50-59", "60ขึ้นไป"].map(age => (
+                                                <button
+                                                    key={age}
+                                                    type="button"
+                                                    onClick={() => handleUserInfoChange('ageRange', age)}
+                                                    className={`px-3 py-2 text-xs sm:text-sm font-semibold rounded-xl border transition-all ${
+                                                        userInfo.ageRange === age
+                                                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                                                        : 'bg-white text-slate-600 border-purple-100 hover:bg-purple-50'
+                                                    }`}
+                                                >
+                                                    {age}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+                                <button
+                                    onClick={handleFormSubmit}
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-8 rounded-full shadow-lg shadow-indigo-500/20 transition transform hover:scale-105 active:scale-95 text-base sm:text-lg w-full sm:w-auto"
+                                >
+                                    เริ่มทำแบบประเมิน →
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setStep(9)}
+                                    className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold py-4 px-8 rounded-full shadow-lg shadow-orange-500/20 transition transform hover:scale-105 active:scale-95 text-base sm:text-lg w-full sm:w-auto"
+                                >
+                                    📊 ข้อมูลสถิติของผู้ทำแบบประเมิน
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            // --- หน้ารายการข้อคำถาม (สลับ 7 หน้า หน้าละ 19 ข้อ) ---
+            if (step >= 1 && step <= 7) {
+                const startIdx = (step - 1) * 19;
+                const endIdx = Math.min(startIdx + 19, 133);
+                const pageQuestions = [];
+
+                for (let i = startIdx; i < endIdx; i++) {
+                    pageQuestions.push({ index: i, text: QUESTIONS[i] });
+                }
+
+                // คำนวณความคืบหน้าของชุดนี้
+                const answeredThisPage = pageQuestions.filter(q => answers[q.index] !== undefined).length;
+                const progressPct = Math.round((Object.keys(answers).length / 133) * 100);
+
+                const handleNextPage = () => {
+                    // ตรวจสอบว่าตอบครบทุกข้อบนหน้านี้หรือไม่
+                    for (let i = startIdx; i < endIdx; i++) {
+                        if (answers[i] === undefined) {
+                            setFormError('กรุณาตอบคำถามในหน้านี้ให้ครบทุกข้อก่อนเลื่อนไปหน้าถัดไป');
+                            const el = document.getElementById(`qi_${i}`);
+                            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            return;
+                        }
+                    }
+                    setFormError('');
+                    if (step === 7) {
+                        handleCalculateResults();
+                    } else {
+                        setStep(step + 1);
+                        window.scrollTo(0, 0);
+                    }
+                };
+
+                const handlePrevPage = () => {
+                    setFormError('');
+                    setStep(step - 1);
+                    window.scrollTo(0, 0);
+                };
+
+                return (
+                    <div className="max-w-4xl mx-auto p-4 sm:p-6 mt-4 animate-slideUp">
+                        {/* Progress Bar */}
+                        <div className="bg-white p-4 rounded-xl border border-purple-100 shadow-sm mb-6 flex items-center justify-between gap-4">
+                            <div className="flex-1">
+                                <div className="flex justify-between items-center text-xs font-semibold text-indigo-700 mb-1.5">
+                                    <span>ความคืบหน้าทั้งหมด</span>
+                                    <span>{Object.keys(answers).length} / 133 ข้อ ({progressPct}%)</span>
+                                </div>
+                                <div className="w-full bg-purple-100 rounded-full h-2.5 overflow-hidden">
+                                    <div className="bg-indigo-600 h-full transition-all duration-300" style={{ width: `${progressPct}%` }}></div>
+                                </div>
+                            </div>
+                            <div className="text-right text-xs bg-indigo-50 border border-indigo-100 px-3.5 py-1.5 rounded-lg text-indigo-800 font-bold shrink-0">
+                                หน้า {step} / 7
+                            </div>
+                        </div>
+
+                        {formError && (
+                            <div className="p-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-sm mb-6 leading-relaxed">
+                                ⚠️ {formError}
+                            </div>
+                        )}
+
+                        <div className="card rounded-2xl p-4 sm:p-8 shadow-lg">
+                            <div className="border-b border-purple-100 pb-4 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                                <h2 className="text-lg font-bold text-slate-800">
+                                    ตอบแบบทดสอบข้อที่ {startIdx + 1} - {endIdx}
+                                </h2>
+                                <span className="text-xs text-slate-500 font-semibold bg-slate-50 px-2 py-1 rounded">
+                                    ตอบครบถ้วนบนหน้านี้: {answeredThisPage} / {pageQuestions.length} ข้อ
+                                </span>
+                            </div>
+
+                            {/* Legend */}
+                            <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 grid grid-cols-2 md:grid-cols-4 gap-3 text-center mb-6">
+                                {SCORE_LABELS.map((lbl, idx) => (
+                                    <div key={idx} className="flex items-center gap-2 text-left bg-white p-2.5 rounded-lg border border-purple-100/50 shadow-sm">
+                                        <span className="w-6 h-6 rounded-md bg-indigo-100 text-indigo-800 font-extrabold text-sm flex items-center justify-center shrink-0">
+                                            {idx}
+                                        </span>
+                                        <span className="text-[10px] sm:text-xs text-slate-600 font-medium leading-tight">{lbl}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Questions List */}
+                            <div className="space-y-6 divide-y divide-purple-100/50">
+                                {pageQuestions.map((q, idx) => {
+                                    const score = answers[q.index];
+                                    return (
+                                        <div key={q.index} id={`qi_${q.index}`} className={`pt-6 ${idx === 0 ? 'pt-0' : ''}`}>
+                                            <div className="text-slate-800 text-sm sm:text-base font-medium mb-3.5 leading-relaxed flex items-start gap-2.5">
+                                                <span className="w-6 h-6 rounded-md bg-indigo-600 text-white font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                                                    {q.index + 1}
+                                                </span>
+                                                <span>{q.text}</span>
+                                            </div>
+                                            <div className="flex justify-start items-center gap-4 sm:gap-6 flex-wrap">
+                                                {[0, 1, 2, 3].map(v => (
+                                                    <button
+                                                        key={v}
+                                                        type="button"
+                                                        onClick={() => handleAnswerSelect(q.index, v)}
+                                                        className="flex items-center gap-2 group cursor-pointer"
+                                                    >
+                                                        <span className={`w-8 h-8 rounded-full border-2 font-bold text-sm flex items-center justify-center transition-all ${
+                                                            score === v
+                                                            ? 'bg-indigo-600 text-white border-indigo-600 scale-105 shadow-md shadow-indigo-500/20'
+                                                            : 'bg-white text-slate-500 border-slate-200 group-hover:border-indigo-400 group-hover:bg-indigo-50/50'
+                                                        }`}>
+                                                            {v}
+                                                        </span>
+                                                        <span className={`text-xs ${
+                                                            score === v ? 'text-indigo-700 font-bold' : 'text-slate-500'
+                                                        }`}>
+                                                            {SCORE_LABELS[v].split('/')[0]}
+                                                        </span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Buttons */}
+                            <div className="flex justify-between items-center mt-10 border-t border-purple-100 pt-6">
+                                <button
+                                    onClick={handlePrevPage}
+                                    disabled={step === 1}
+                                    className="px-6 py-3 rounded-xl font-bold text-sm bg-purple-100 text-purple-700 hover:bg-purple-200 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    ← ย้อนกลับ
+                                </button>
+                                <button
+                                    onClick={handleNextPage}
+                                    disabled={isSubmitting}
+                                    className="px-7 py-3.5 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-700 text-white transition shadow-md shadow-indigo-500/20"
+                                >
+                                    {isSubmitting ? 'กำลังส่งข้อมูล...' : step === 7 ? 'ส่งคำตอบและดูผลลัพธ์' : 'หน้าถัดไป →'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            // --- หน้าแสดงผลลัพธ์ (step === 8) ---
+            if (step === 8) {
+                // แยกของประทานเด่นอันดับแรก
+                const topGiftsList = rankedGiftsDesc.filter(g => g.rank === 1);
+                
+                // รายการแสดงผลตามการกดแสดงเพิ่มเติม
+                const topGiftsToShow = showAllTopGifts ? rankedGiftsDesc : rankedGiftsDesc.slice(0, 3);
+                const bottomGiftsToShow = showAllBottomGifts ? rankedGiftsAsc : rankedGiftsAsc.slice(0, 2);
+
+                // ตารางคอลัมน์และข้อมูลคะแนน
+                const colHeads = CATEGORIES.map(c => (
+                    <th key={c.id} className="p-2 border border-purple-200 bg-indigo-50 text-indigo-900 font-bold text-xs">
+                        {c.id}
+                    </th>
+                ));
+
+                const rowsHtml = [];
+                for (let r = 0; r < 7; r++) {
+                    const cells = catScores.map((cs, cIdx) => {
+                        const val = cs.scoresList[r];
+                        return (
+                            <td key={cIdx} className="p-2 border border-purple-100 text-slate-700 font-medium text-xs">
+                                {val !== null ? val : '-'}
+                            </td>
+                        );
+                    });
+                    rowsHtml.push(
+                        <tr key={r} className="hover:bg-purple-50/20">
+                            <td className="p-2 border border-purple-200 bg-purple-50/60 font-semibold text-slate-600 text-xs"></td>
+                            {cells}
+                        </tr>
+                    );
+                }
+
+                const totalCells = catScores.map((cs, cIdx) => (
+                    <td key={cIdx} className="p-2 border border-purple-200 bg-indigo-50/50 text-indigo-800 font-black text-sm">
+                        {cs.total}
+                    </td>
+                ));
+
+                const abbrCells = CATEGORIES.map(c => (
+                    <td key={c.id} className="p-1 border border-purple-200 bg-purple-50/20 text-slate-500 font-semibold text-[10px]" title={c.name}>
+                        {c.abbr}
+                    </td>
+                ));
+
+                return (
+                    <div className="max-w-4xl mx-auto p-2 sm:p-6 mt-4 sm:mt-8 space-y-8">
+                        <div className="card rounded-2xl p-4 sm:p-8 shadow-xl overflow-hidden bg-white">
+                            
+                            {/* Area to capture */}
+                            <div id="personal-result-capture" className="bg-white p-2.5 sm:p-4 rounded-xl">
+                                <h1 className="text-2xl sm:text-3xl font-extrabold text-indigo-700 text-center mb-6">
+                                    ผลการประเมินของประทานฝ่ายวิญญาณ
+                                </h1>
+
+                                {/* 1. ข้อมูลผู้ทำแบบประเมิน */}
+                                <div className="bg-indigo-50/60 p-4 rounded-xl mb-6 border border-indigo-100 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                    <div className="text-sm sm:text-base text-slate-700 space-y-1.5">
+                                        <p><span className="font-semibold text-slate-900">ชื่อ-นามสกุล:</span> {userInfo.fullName} {userInfo.nickname ? `(${userInfo.nickname})` : ''}</p>
+                                        <p><span className="font-semibold text-slate-900">บทบาทการรับใช้:</span> {userInfo.role}</p>
+                                        <p><span className="font-semibold text-slate-900">สังกัดส่วนงาน:</span> {userInfo.section} &nbsp;|&nbsp; <span className="font-semibold text-slate-900">เพศ:</span> {userInfo.gender} &nbsp;|&nbsp; <span className="font-semibold text-slate-900">กลุ่มอายุ:</span> {userInfo.ageRange}</p>
+                                    </div>
+                                    <div className="text-left sm:text-right flex sm:flex-col justify-between items-center sm:items-end w-full sm:w-auto border-t sm:border-t-0 pt-2.5 sm:pt-0 border-indigo-200/50">
+                                        <div className="text-xs font-bold text-indigo-600 sm:mb-1 uppercase tracking-wide">ของประทานเด่นอันดับแรก</div>
+                                        <div className="text-lg sm:text-2xl font-black text-indigo-700 bg-white border border-indigo-200 px-4 py-2 rounded-xl shadow-sm">
+                                            {topGiftsList.map(g => g.item.cat.id).join(', ')}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 2. หมวดของประทานที่ได้คะแนนมากสุด 3 รายการ */}
+                                <div className="mb-6">
+                                    <h2 className="text-base sm:text-lg font-bold mb-3 text-slate-800 flex items-center gap-2">
+                                        <span className="w-1.5 h-4 bg-indigo-600 rounded-full inline-block"></span>
+                                        1. หมวดของประทานที่ได้คะแนนมากสุด 3 รายการ
+                                    </h2>
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {topGiftsToShow.map((rankObj, idx) => {
+                                            const bgClass = rankObj.rank === 1 
+                                                ? 'bg-amber-50/50 border-amber-200' 
+                                                : rankObj.rank === 2 
+                                                    ? 'bg-slate-50/80 border-slate-200' 
+                                                    : rankObj.rank === 3 
+                                                        ? 'bg-slate-50/60 border-slate-200' 
+                                                        : 'bg-slate-50/30 border-slate-100';
+                                            return (
+                                                <div key={idx} className={`border rounded-xl p-4 flex items-start gap-3.5 shadow-sm transition-all ${bgClass}`}>
+                                                    <div className="flex-1">
+                                                        <h3 className="font-bold text-slate-800 text-sm sm:text-base">
+                                                            {rankObj.item.cat.id}. {rankObj.item.cat.name}
+                                                        </h3>
+                                                        <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                                                            {rankObj.item.cat.desc}
+                                                        </p>
+                                                    </div>
+                                                    <div className="text-right shrink-0">
+                                                        <span className="inline-block px-3 py-1 bg-indigo-100 text-indigo-800 font-extrabold text-sm rounded-full">
+                                                            {rankObj.score} / 21
+                                                        </span>
+                                                        <div className="text-[10px] text-slate-400 mt-1">คะแนน</div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    {rankedGiftsDesc.length > 3 && (
+                                        <div className="text-center mt-3 no-print" data-html2canvas-ignore="true">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowAllTopGifts(!showAllTopGifts)}
+                                                className="inline-flex items-center gap-1 px-4 py-2 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-all active:scale-95 shadow-sm"
+                                            >
+                                                {showAllTopGifts ? (
+                                                    <>แสดงน้อยลง ▴</>
+                                                ) : (
+                                                    <>แสดงเพิ่มเติม ({rankedGiftsDesc.length - 3} รายการ) ▾</>
+                                                )}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* 3. หมวดของประทานที่ได้คะแนนน้อยสุด 2 รายการ */}
+                                <div className="mb-6">
+                                    <h2 className="text-base sm:text-lg font-bold mb-3 text-slate-800 flex items-center gap-2">
+                                        <span className="w-1.5 h-4 bg-red-500 rounded-full inline-block"></span>
+                                        2. หมวดของประทานที่ได้คะแนนน้อยสุด 2 รายการ
+                                    </h2>
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {bottomGiftsToShow.map((rankObj, idx) => {
+                                            const bgClass = 'bg-rose-50/30 border-rose-100';
+                                            return (
+                                                <div key={idx} className={`border rounded-xl p-4 flex items-start gap-3.5 shadow-sm transition-all ${bgClass}`}>
+                                                    <div className="flex-1">
+                                                        <h3 className="font-bold text-slate-800 text-sm sm:text-base">
+                                                            {rankObj.item.cat.id}. {rankObj.item.cat.name}
+                                                        </h3>
+                                                        <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                                                            {rankObj.item.cat.desc}
+                                                        </p>
+                                                    </div>
+                                                    <div className="text-right shrink-0">
+                                                        <span className="inline-block px-3 py-1 bg-rose-100 text-rose-800 font-extrabold text-sm rounded-full">
+                                                            {rankObj.score} / 21
+                                                        </span>
+                                                        <div className="text-[10px] text-slate-400 mt-1">คะแนน</div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    {rankedGiftsAsc.length > 2 && (
+                                        <div className="text-center mt-3 no-print" data-html2canvas-ignore="true">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowAllBottomGifts(!showAllBottomGifts)}
+                                                className="inline-flex items-center gap-1 px-4 py-2 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition-all active:scale-95 shadow-sm"
+                                            >
+                                                {showAllBottomGifts ? (
+                                                    <>แสดงน้อยลง ▴</>
+                                                ) : (
+                                                    <>แสดงเพิ่มเติม ({rankedGiftsAsc.length - 2} รายการ) ▾</>
+                                                )}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* 4. กราฟเปรียบเทียบคะแนนของประทานฝ่ายวิญญาณ 19 ด้าน */}
+                                <div className="mb-6">
+                                    <h2 className="text-base sm:text-lg font-bold mb-3 text-slate-800 flex items-center gap-2">
+                                        <span className="w-1.5 h-4 bg-indigo-600 rounded-full inline-block"></span>
+                                        3. กราฟเปรียบเทียบคะแนนของประทานฝ่ายวิญญาณ 19 ด้าน
+                                    </h2>
+                                    <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-inner h-64 sm:h-72 relative w-full">
+                                        <canvas id="chart-personal-comparison"></canvas>
+                                    </div>
+                                    <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 gap-x-2 gap-y-1 mt-3.5 bg-slate-50 p-3 rounded-lg border border-slate-200 text-[10px] text-slate-500 leading-normal">
+                                        {CATEGORIES.map(c => (
+                                            <div key={c.id} className="truncate">
+                                                <strong>{c.id}</strong>: {c.name}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* 5. สรุปคะแนนที่คุณตอบระบุเป็นข้อ */}
+                                <div>
+                                    <h2 className="text-base sm:text-lg font-bold mb-3 text-slate-800 flex items-center gap-2">
+                                        <span className="w-1.5 h-4 bg-indigo-600 rounded-full inline-block"></span>
+                                        4. สรุปคะแนนที่คุณตอบระบุเป็นข้อ
+                                    </h2>
+                                    <div className="overflow-x-auto border border-purple-200 rounded-xl shadow-sm">
+                                        <table className="w-full text-center border-collapse table-layout-fixed min-w-[760px]">
+                                            <thead>
+                                                <tr>
+                                                    <th className="p-2 border border-purple-200 bg-indigo-50/80 text-indigo-950 font-bold text-xs w-[80px]">ด้าน</th>
+                                                    {colHeads}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {rowsHtml}
+                                                <tr className="bg-indigo-50/20 font-black">
+                                                    <td className="p-2 border border-purple-200 text-indigo-800 text-xs">รวมคะแนน</td>
+                                                    {totalCells}
+                                                </tr>
+                                                <tr>
+                                                    <td className="p-1 border border-purple-200 bg-purple-50/10 text-slate-400 font-semibold text-[9px]">ย่อหมวด</td>
+                                                    {abbrCells}
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 6. ปุ่มคำสั่งพิมพ์/บันทึกรูป */}
+                            <div className="mt-8 pt-5 border-t border-purple-100 flex flex-col sm:flex-row gap-3 justify-center px-4">
+                                <button
+                                    onClick={handleSaveImage}
+                                    disabled={isCapturing}
+                                    className={`${
+                                        isCapturing ? 'bg-slate-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 hover:scale-[1.01]'
+                                    } text-white font-bold py-3.5 px-7 rounded-xl transition shadow-md hover:shadow-lg flex items-center justify-center gap-2 w-full sm:w-auto text-sm sm:text-base`}
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                    </svg>
+                                    {isCapturing ? 'กำลังแคปเจอร์รูปภาพ...' : 'บันทึกผลลัพธ์เป็นรูปภาพ'}
+                                </button>
+                                <button
+                                    onClick={() => window.print()}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-7 rounded-xl transition shadow-md w-full sm:w-auto text-sm sm:text-base flex items-center justify-center gap-2"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                                    </svg>
+                                    พิมพ์รายงาน / เซฟเป็น PDF
+                                </button>
+                            </div>
+
+                            {/* 7. ข้อมูลสถิติของคนทั้งหมด */}
+                            <StatsCharts 
+                                refreshTrigger={refreshStatsTrigger} 
+                                userInfo={userInfo}
+                                userScores={catScores.reduce((acc, cs) => {
+                                    acc[cs.cat.id] = cs.total;
+                                    return acc;
+                                }, {})}
+                            />
+
+                            {/* ปุ่มรีสตาร์ท */}
+                            <div className="mt-8 text-center border-t border-purple-100 pt-6">
+                                <button
+                                    onClick={handleRestartTest}
+                                    className="bg-red-100 hover:bg-red-200 text-red-700 font-bold py-3 px-6 rounded-xl transition text-sm shadow-sm"
+                                >
+                                    🔄 ทำแบบประเมินใหม่อีกครั้ง
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Beautiful Glassmorphism Modal for Image Save on Mobile Devices */}
+                        {capturedImage && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 animate-fadeIn">
+                                <div className="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl flex flex-col max-h-[92vh] overflow-hidden border border-slate-100 animate-slideUp">
+                                    <div className="flex justify-between items-center mb-3 border-b pb-2">
+                                        <h3 className="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-1.5">📲 บันทึกภาพลงคลังรูปภาพ</h3>
+                                        <button
+                                            onClick={() => setCapturedImage(null)}
+                                            className="text-slate-400 hover:text-slate-650 text-2xl font-bold p-1 leading-none transition-colors"
+                                        >
+                                            &times;
+                                        </button>
+                                    </div>
+
+                                    <div className="flex-1 overflow-y-auto mb-4 border border-slate-200 rounded-xl bg-slate-50 p-2 flex justify-center items-start">
+                                        <img
+                                            src={capturedImage}
+                                            alt="Spiritual Gifts Test Result"
+                                            className="max-w-full h-auto rounded-lg shadow-sm border border-slate-200"
+                                        />
+                                    </div>
+
+                                    <div className="bg-emerald-50 border border-emerald-200 text-emerald-850 p-3.5 rounded-xl text-xs sm:text-sm mb-4 leading-relaxed font-medium text-center">
+                                        📲 <strong>วิธีเซฟลงมือถือ:</strong> ให้คุณ<strong>กดค้างที่รูปภาพด้านบน</strong> แล้วเลือก <strong className="text-emerald-700 font-bold">"บันทึกรูปภาพ" (Save Image)</strong> หรือ <strong className="text-emerald-700 font-bold">"เพิ่มไปยังแอปรูปภาพ"</strong> เพื่อนำรูปเข้าคลังภาพโดยตรงและแชร์ให้พี่เลี้ยงหรือผู้นำคริสตจักรได้เลยครับ!
+                                    </div>
+
+                                    <div className="flex gap-2 justify-end border-t pt-3">
+                                        <button
+                                            onClick={() => setCapturedImage(null)}
+                                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition text-center text-xs sm:text-sm shadow-md"
+                                        >
+                                            เสร็จสิ้น / ปิดหน้าต่าง
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            }
+
+            // --- หน้าแสดงสถิติเดี่ยว (step === 9) ---
+            if (step === 9) {
+                return (
+                    <div className="max-w-4xl mx-auto p-2 sm:p-6 mt-4 sm:mt-8 space-y-8 animate-slideUp">
+                        <div className="card rounded-2xl p-4 sm:p-8 shadow-xl bg-white">
+                            <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4 gap-4">
+                                <div>
+                                    <h1 className="text-xl sm:text-2xl font-extrabold text-indigo-800 flex items-center gap-2">
+                                        📊 สถิติภาพรวมของผู้ทำแบบประเมิน
+                                    </h1>
+                                    <p className="text-xs text-slate-500 mt-1">ข้อมูลสรุปของประทานฝ่ายวิญญาณของผู้ทำแบบประเมินทั้งหมด</p>
+                                </div>
+                                <button
+                                    onClick={() => setStep(0)}
+                                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-5 rounded-xl transition text-sm shadow-sm active:scale-95 flex items-center gap-1 w-full sm:w-auto justify-center"
+                                >
+                                    ← กลับหน้าหลัก
+                                </button>
+                            </div>
+                            
+                            <StatsCharts 
+                                refreshTrigger={refreshStatsTrigger} 
+                                userInfo={userInfo}
+                                userScores={{}}
+                            />
+
+                            <div className="mt-8 text-center border-t border-purple-100 pt-6">
+                                <button
+                                    onClick={() => setStep(0)}
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-8 rounded-xl transition text-sm shadow-md active:scale-95"
+                                >
+                                    ← กลับหน้าลงทะเบียนและเริ่มทำแบบทดสอบ
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
